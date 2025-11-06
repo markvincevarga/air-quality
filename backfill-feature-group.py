@@ -1,16 +1,16 @@
 # %%
 import datetime
-from pathlib import Path
-
-import requests
-import pandas as pd
 import os
 import openmeteo_requests
+import pandas as pd
+import requests
 import requests_cache
+from pathlib import Path
 from retry_requests import retry
-import hopsworks
-
+from typing import TypedDict
 from dotenv import load_dotenv
+
+import hopsworks
 
 load_dotenv()
 
@@ -23,7 +23,7 @@ for file in Path("data/air-quality").glob("*.csv"):
     sensor_data = requests.get(aqicn_url, timeout=10).json()["data"]["city"]
     sensors[sensor_id] = sensor_data  # to fetch weather data later
 
-    aq_df = pd.read_csv(file, skipinitialspace=True, parse_dates=['date'])
+    aq_df = pd.read_csv(file, skipinitialspace=True, parse_dates=["date"])
     aq_df.dropna(inplace=True)
     aq_df["name"] = sensor_data["name"]
     aq_df["url"] = f"https://api.waqi.info/feed/{sensor_id}"
@@ -33,24 +33,33 @@ for file in Path("data/air-quality").glob("*.csv"):
     aq_df["id"] = sensor_id
 
 sensors
-# %%
-from typing import TypedDict
 
+
+# %%
 class Place(TypedDict):
-    street:str
+    street: str
     city: str
     country: str
     id: str
+
 
 places = {
     "65707": Place(street="Lilla Åby", city="Slaka", country="Sweden", id="65707"),
     "58909": Place(street="Tröskaregatan", city="Slaka", country="Sweden", id="58909"),
     "77446": Place(street="Ånestad", city="Johannelund", country="Sweden", id="77446"),
-    "13990": Place(street="Hamngatan 10", city="Linköping", country="Sweden", id="13990"),
+    "13990": Place(
+        street="Hamngatan 10", city="Linköping", country="Sweden", id="13990"
+    ),
     "533086": Place(street="Björnsbacken", city="Berg", country="Sweden", id="533086"),
-    "13985": Place(street="Kungsgatan 32", city="Norrköping", country="Sweden", id="13985"),
-    "13986": Place(street="Trädgårdsgatan 21", city="Norrköping", country="Sweden", id="13986"),
-    "556792": Place(street="Enebymovägen", city="Norrköping", country="Sweden", id="556792"),
+    "13985": Place(
+        street="Kungsgatan 32", city="Norrköping", country="Sweden", id="13985"
+    ),
+    "13986": Place(
+        street="Trädgårdsgatan 21", city="Norrköping", country="Sweden", id="13986"
+    ),
+    "556792": Place(
+        street="Enebymovägen", city="Norrköping", country="Sweden", id="556792"
+    ),
     "63421": Place(street="Nannavägen", city="Krokek", country="Sweden", id="63421"),
 }
 
@@ -81,6 +90,7 @@ air_quality_fg.update_feature_description(
 # air_quality_fg.update_feature_description("country", "Country where the air quality was measured (sometimes a city in acqcn.org)")
 # air_quality_fg.update_feature_description("city", "City where the air quality was measured")
 # air_quality_fg.update_feature_description("street", "Street in the city where the air quality was measured")
+
 
 # %%
 def get_historical_weather(start_date, end_date, latitude, longitude, id):
@@ -121,6 +131,7 @@ def get_historical_weather(start_date, end_date, latitude, longitude, id):
     daily_dataframe = pd.DataFrame(data=daily_data)
     daily_dataframe = daily_dataframe.dropna()
     return daily_dataframe
+
 
 weather_fg = fs.get_or_create_feature_group(
     name="weather",
