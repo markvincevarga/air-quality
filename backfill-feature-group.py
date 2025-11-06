@@ -61,17 +61,7 @@ aq_df.head()
 # %%
 project = hopsworks.login(engine="python")
 fs = project.get_feature_store()
-# %%
-# import great_expectations as gx
-# gx.get_context()
-# aq_expectation_suite = gx.core.ExpectationSuite(
-#     name="aq_expectation_suite"
-# )
-# aq_expectation_suite.add_expectation(
-#     gx.expectations.ExpectColumnMinToBeBetween(
-#         column="pm25", min_value=-0.1, max_value=500.0, strict_min=True
-#     )
-# )
+fs
 
 # %%
 air_quality_fg = fs.get_or_create_feature_group(
@@ -93,8 +83,6 @@ air_quality_fg.update_feature_description(
 # air_quality_fg.update_feature_description("street", "Street in the city where the air quality was measured")
 
 # %%
-
-
 def get_historical_weather(start_date, end_date, latitude, longitude, id):
     # Setup the Open-Meteo API client with cache and retry on error
     cache_session = requests_cache.CachedSession(".cache", expire_after=-1)
@@ -134,20 +122,6 @@ def get_historical_weather(start_date, end_date, latitude, longitude, id):
     daily_dataframe = daily_dataframe.dropna()
     return daily_dataframe
 
-
-# %%
-# weather_expectation_suite = gx.core.ExpectationSuite(
-#     name="weather_expectation_suite"
-# )
-
-# def expect_greater_than_zero(col):
-#     weather_expectation_suite.add_expectation(
-#         gx.expectations.ExpectColumnMinToBeBetween(
-#             column=col, min_value=-0.1, max_value=1000.0, strict_min=True
-#         )
-#     )
-# expect_greater_than_zero("precipitation_sum")
-# expect_greater_than_zero("wind_speed_10m_max")
 weather_fg = fs.get_or_create_feature_group(
     name="weather",
     description="Weather characteristics of each day",
