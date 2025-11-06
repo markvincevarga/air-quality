@@ -15,53 +15,80 @@ import hopsworks
 load_dotenv()
 
 # %%
-sensors = {}
-for file in Path("data/air-quality").glob("*.csv"):
-    sensor_id = file.stem
-    print(f"Processing {sensor_id}")
-    aqicn_url = f"https://api.waqi.info/feed/@{sensor_id}/?token={os.environ['AQICN_ORG_API_TOKEN']}"
-    sensor_data = requests.get(aqicn_url, timeout=10).json()["data"]["city"]
-    sensors[sensor_id] = sensor_data  # to fetch weather data later
-
-    aq_df = pd.read_csv(file, skipinitialspace=True, parse_dates=["date"])
-    aq_df.dropna(inplace=True)
-    aq_df["name"] = sensor_data["name"]
-    aq_df["url"] = f"https://api.waqi.info/feed/{sensor_id}"
-    aq_df["pm25"] = aq_df["pm25"].astype("float32")
-    aq_df["pm10"] = aq_df["pm10"].astype("float32")
-    aq_df["no2"] = aq_df["no2"].astype("float32")
-    aq_df["id"] = sensor_id
-
-sensors
-
-
-# %%
 class Place(TypedDict):
     street: str
     city: str
     country: str
     id: str
+    latitude: float | None
+    longitude: float | None
 
 
 places = {
-    "65707": Place(street="Lilla Åby", city="Slaka", country="Sweden", id="65707"),
-    "58909": Place(street="Tröskaregatan", city="Slaka", country="Sweden", id="58909"),
-    "77446": Place(street="Ånestad", city="Johannelund", country="Sweden", id="77446"),
-    "13990": Place(
-        street="Hamngatan 10", city="Linköping", country="Sweden", id="13990"
+    "A65707": Place(street="Lilla Åby", city="Slaka", country="Sweden", id="A65707"),
+    "A58909": Place(street="Tröskaregatan", city="Slaka", country="Sweden", id="A58909"),
+    "A77446": Place(street="Ånestad", city="Johannelund", country="Sweden", id="A77446"),
+    "@13990": Place(
+        street="Hamngatan 10", city="Linköping", country="Sweden", id="@13990"
     ),
-    "533086": Place(street="Björnsbacken", city="Berg", country="Sweden", id="533086"),
-    "13985": Place(
-        street="Kungsgatan 32", city="Norrköping", country="Sweden", id="13985"
+    "A533086": Place(street="Björnsbacken", city="Berg", country="Sweden", id="A533086"),
+    "@13985": Place(
+        street="Kungsgatan 32", city="Norrköping", country="Sweden", id="@13985"
     ),
-    "13986": Place(
-        street="Trädgårdsgatan 21", city="Norrköping", country="Sweden", id="13986"
+    "@13986": Place(
+        street="Trädgårdsgatan 21", city="Norrköping", country="Sweden", id="@13986"
     ),
-    "556792": Place(
-        street="Enebymovägen", city="Norrköping", country="Sweden", id="556792"
+    "A556792": Place(
+        street="Enebymovägen", city="Norrköping", country="Sweden", id="A556792"
     ),
-    "63421": Place(street="Nannavägen", city="Krokek", country="Sweden", id="63421"),
 }
+
+for place_id in places:
+    # Get lat,long from live feed data for sensor
+    aqicn_url = f"https://api.waqi.info/feed/{place_id}/?token={os.environ['AQICN_ORG_API_TOKEN']}"
+    resp = requests.get(aqicn_url, timeout=10)
+    resp.raise_for_status()
+    sensor_data = resp.json()["data"]["city"]
+    latitude, longitude = sensor_data["geo"]
+    places[place_id]["latitude"] = latitude
+    places[place_id]["longitude"]= longitude
+
+places
+
+# %%
+def process_aq(df: pd.DataFrame, place: Place):
+    """
+    Process air quality dataframe depending on the type (A or @).
+    
+    The parameter will be modified in place to:
+        pd.DataFrame: Processed dataframe with columns [id, date, pm25]
+    """
+    if place["id"].startswith("@"):
+        pass
+    elif place["id"].startswith("A"):
+        df.rename(columns={"median": "pm25"}, inplace=True)
+    else:
+        raise ValueError(f"Unknown place id format: {place['id']}")
+    df["pm25"] = df["pm25"].astype("float32")
+    df.drop(df.columns.difference(["date", "pm25"]), axis=1, inplace=True)    
+    df.dropna(inplace=True)
+    df["id"] = place["id"]
+    
+
+aq_df = pd.DataFrame()
+for place_id in places:
+    file_path =Path(f"data/air-quality/{place_id}.csv")
+    if not Path(f"data/air-quality/{place_id}.csv").is_file():
+        raise FileNotFoundError(f"File data/air-quality/{place_id}.csv not found")
+    
+    print(f"Processing {place_id}")
+    df = pd.read_csv(file_path, comment="#", skipinitialspace=True, parse_dates=["date"])
+    process_aq(df, places[place_id])
+    aq_df = pd.concat([aq_df, df])
+
+aq_df.head()
+
+# %%
 
 aq_df.info()
 pd.set_option("display.max_columns", 7)
@@ -146,7 +173,7 @@ earliest_aq_date = pd.Series.min(aq_df["date"])
 earliest_aq_date = earliest_aq_date.strftime("%Y-%m-%d")
 # TODO: this is stupid, fix hard coded value.
 sensor_id = "13986"
-lat, long = sensors[sensor_id]["geo"]
+lat, long = places[sensor_id]["geo"]
 weather_df = get_historical_weather(
     earliest_aq_date, str(datetime.date.today()), lat, long, sensor_id
 )
