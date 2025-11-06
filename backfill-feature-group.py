@@ -23,46 +23,64 @@ for file in Path("data/air-quality").glob("*.csv"):
     sensor_data = requests.get(aqicn_url, timeout=10).json()["data"]["city"]
     sensors[sensor_id] = sensor_data  # to fetch weather data later
 
-    aq_df = pd.read_csv(file)
+    aq_df = pd.read_csv(file, skipinitialspace=True, parse_dates=['date'])
     aq_df.dropna(inplace=True)
     aq_df["name"] = sensor_data["name"]
     aq_df["url"] = f"https://api.waqi.info/feed/{sensor_id}"
+    aq_df["pm25"] = aq_df["pm25"].astype("float32")
+    aq_df["pm10"] = aq_df["pm10"].astype("float32")
+    aq_df["no2"] = aq_df["no2"].astype("float32")
+    aq_df["id"] = sensor_id
 
 sensors
 # %%
+from typing import TypedDict
+
+class Place(TypedDict):
+    street:str
+    city: str
+    country: str
+    id: str
+
+places = {
+    "65707": Place(street="Lilla Åby", city="Slaka", country="Sweden", id="65707"),
+    "58909": Place(street="Tröskaregatan", city="Slaka", country="Sweden", id="58909"),
+    "77446": Place(street="Ånestad", city="Johannelund", country="Sweden", id="77446"),
+    "13990": Place(street="Hamngatan 10", city="Linköping", country="Sweden", id="13990"),
+    "533086": Place(street="Björnsbacken", city="Berg", country="Sweden", id="533086"),
+    "13985": Place(street="Kungsgatan 32", city="Norrköping", country="Sweden", id="13985"),
+    "13986": Place(street="Trädgårdsgatan 21", city="Norrköping", country="Sweden", id="13986"),
+    "556792": Place(street="Enebymovägen", city="Norrköping", country="Sweden", id="556792"),
+    "63421": Place(street="Nannavägen", city="Krokek", country="Sweden", id="63421"),
+}
+
+aq_df.info()
+pd.set_option("display.max_columns", 7)
+aq_df.head()
 
 # %%
-
 project = hopsworks.login(engine="python")
 fs = project.get_feature_store()
-
 # %%
-import great_expectations as ge
-
-aq_expectation_suite = ge.core.ExpectationSuite(
-    expectation_suite_name="aq_expectation_suite"
-)
-
-aq_expectation_suite.add_expectation(
-    ge.core.ExpectationConfiguration(
-        expectation_type="expect_column_min_to_be_between",
-        kwargs={
-            "column": "pm25",
-            "min_value": -0.1,
-            "max_value": 500.0,
-            "strict_min": True,
-        },
-    )
-)
+# import great_expectations as gx
+# gx.get_context()
+# aq_expectation_suite = gx.core.ExpectationSuite(
+#     name="aq_expectation_suite"
+# )
+# aq_expectation_suite.add_expectation(
+#     gx.expectations.ExpectColumnMinToBeBetween(
+#         column="pm25", min_value=-0.1, max_value=500.0, strict_min=True
+#     )
+# )
 
 # %%
 air_quality_fg = fs.get_or_create_feature_group(
     name="air_quality",
     description="Air Quality characteristics of each day",
     version=1,
-    primary_key=["country", "city", "street"],
+    primary_key=["id"],
     event_time="date",
-    expectation_suite=aq_expectation_suite,
+    # expectation_suite=aq_expectation_suite,
 )
 air_quality_fg.insert(aq_df)
 air_quality_fg.update_feature_description("date", "Date of measurement of air quality")
@@ -77,7 +95,7 @@ air_quality_fg.update_feature_description(
 # %%
 
 
-def get_historical_weather(start_date, end_date, latitude, longitude):
+def get_historical_weather(start_date, end_date, latitude, longitude, id):
     # Setup the Open-Meteo API client with cache and retry on error
     cache_session = requests_cache.CachedSession(".cache", expire_after=-1)
     retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
@@ -100,6 +118,7 @@ def get_historical_weather(start_date, end_date, latitude, longitude):
     response = responses[0]
     daily = response.Daily()
     daily_data = {
+        "id": id,
         "date": pd.date_range(
             start=pd.to_datetime(daily.Time(), unit="s"),
             end=pd.to_datetime(daily.TimeEnd(), unit="s"),
@@ -117,20 +136,33 @@ def get_historical_weather(start_date, end_date, latitude, longitude):
 
 
 # %%
+# weather_expectation_suite = gx.core.ExpectationSuite(
+#     name="weather_expectation_suite"
+# )
+
+# def expect_greater_than_zero(col):
+#     weather_expectation_suite.add_expectation(
+#         gx.expectations.ExpectColumnMinToBeBetween(
+#             column=col, min_value=-0.1, max_value=1000.0, strict_min=True
+#         )
+#     )
+# expect_greater_than_zero("precipitation_sum")
+# expect_greater_than_zero("wind_speed_10m_max")
 weather_fg = fs.get_or_create_feature_group(
     name="weather",
     description="Weather characteristics of each day",
     version=1,
-    primary_key=["city"],
+    primary_key=["id"],
     event_time="date",
-    # expectation_suite=
+    # expectation_suite=weather_expectation_suite.to_json_dict(),
 )
 
 earliest_aq_date = pd.Series.min(aq_df["date"])
 earliest_aq_date = earliest_aq_date.strftime("%Y-%m-%d")
-sensor_id = "9999"
-lat, long = aq_df[sensor_id]["city"]["geo"]
+# TODO: this is stupid, fix hard coded value.
+sensor_id = "13986"
+lat, long = sensors[sensor_id]["geo"]
 weather_df = get_historical_weather(
-    earliest_aq_date, str(datetime.date.today()), lat, long
+    earliest_aq_date, str(datetime.date.today()), lat, long, sensor_id
 )
 weather_fg.insert(weather_df, wait=True)
