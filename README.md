@@ -1,8 +1,17 @@
 # Air Quality
 
-# Getting the backfill data
+## Installing Dependencies
 
-## Air Quality
+The project is managed by uv, but `hopsworks` must be installed separately in the venv. Use the following commands:
+
+```sh
+uv sync
+uv pip install "hopsworks[python]"
+```
+
+## Getting the backfill data
+
+## Air Quality Data
 
 Download the desired data to be backfilled and place it in the data/ directory.
 
