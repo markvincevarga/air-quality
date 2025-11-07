@@ -68,7 +68,7 @@ for place_id in places:
 aq_df.head()
 
 # %%
-project = hopsworks.login(engine="python")
+project = hopsworks.login(engine="python", project="ostergotland_air_quality")
 fs = project.get_feature_store()
 fs
 
@@ -76,7 +76,7 @@ fs
 air_quality_fg = fs.get_or_create_feature_group(
     name="air_quality",
     description="Air Quality characteristics of each day",
-    version=1,
+    version=2,
     primary_key=["id"],
     event_time="date",
 )
