@@ -228,6 +228,8 @@ def get_historical_weather(aq_df: pd.DataFrame, places: dict[str, Place]) -> pd.
     }
     responses = openmeteo.weather_api(url, params=params)
     weather_df = pd.DataFrame()
+    
+    daily_vars = params["daily"]
     for response, place_id in zip(responses, places.keys()):
         daily = response.Daily()
         daily_data = {
@@ -238,27 +240,13 @@ def get_historical_weather(aq_df: pd.DataFrame, places: dict[str, Place]) -> pd.
                 freq=pd.Timedelta(seconds=daily.Interval()),
                 inclusive="left",
             ),
-            "wind_speed_10m_max": daily.Variables(0).ValuesAsNumpy(),
-            "wind_gusts_10m_max": daily.Variables(1).ValuesAsNumpy(),
-            "wind_direction_10m_dominant": daily.Variables(2).ValuesAsNumpy(),
-            "precipitation_sum": daily.Variables(3).ValuesAsNumpy(),
-            "precipitation_hours": daily.Variables(4).ValuesAsNumpy(),
-            "rain_sum": daily.Variables(5).ValuesAsNumpy(),
-            "snowfall_sum": daily.Variables(6).ValuesAsNumpy(),
-            "et0_fao_evapotranspiration": daily.Variables(7).ValuesAsNumpy(),
-            "shortwave_radiation_sum": daily.Variables(8).ValuesAsNumpy(),
-            "weather_code": daily.Variables(9).ValuesAsNumpy(),
-            "temperature_2m_max": daily.Variables(10).ValuesAsNumpy(),
-            "temperature_2m_min": daily.Variables(11).ValuesAsNumpy(),
-            "apparent_temperature_max": daily.Variables(12).ValuesAsNumpy(),
-            "apparent_temperature_min": daily.Variables(13).ValuesAsNumpy(),
-            "sunset": daily.Variables(14).ValuesInt64AsNumpy(),
-            "sunrise": daily.Variables(15).ValuesInt64AsNumpy(),
-            "daylight_duration": daily.Variables(16).ValuesAsNumpy(),
-            "sunshine_duration": daily.Variables(17).ValuesAsNumpy(),
-            "temperature_2m_mean": daily.Variables(18).ValuesAsNumpy(),
-            "apparent_temperature_mean": daily.Variables(19).ValuesAsNumpy(),
         }
+        
+        for i, var_name in enumerate(daily_vars):
+            if var_name in ["sunset", "sunrise"]:
+                daily_data[var_name] = daily.Variables(i).ValuesInt64AsNumpy()
+            else:
+                daily_data[var_name] = daily.Variables(i).ValuesAsNumpy()
         weather_df = pd.concat([weather_df, pd.DataFrame(data=daily_data)])
     weather_df.dropna(inplace=True)
     weather_df["date"] = weather_df["date"].dt.date
