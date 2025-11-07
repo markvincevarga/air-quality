@@ -252,7 +252,6 @@ weather_fg = fs.get_or_create_feature_group(
     version=2,
     primary_key=["id"],
     event_time="date",
-    # expectation_suite=weather_expectation_suite.to_json_dict(),
 )
 weather_fg.insert(weather_df, wait=True)
 # %%
