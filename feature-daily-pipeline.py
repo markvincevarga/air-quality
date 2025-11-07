@@ -1,41 +1,58 @@
-# Grade ‘E’ tasks
-# 1. Write a backfill feature pipeline that downloads historical weather data (ideally >1 year of data), loads a csv file with
-# historical air quality data (downloaded from https://aqicn.org) and registers them as 2 Feature Groups with Hopsworks.
-# 2. Schedule a daily feature pipeline notebook that downloads yesterday’s weather data and air quality data, and also the
+# Taks 2. Schedule a daily feature pipeline notebook that downloads yesterday’s weather data and air quality data, and also the
 # weather prediction for the next 7-10 days and update the Feature Groups in Hopsworks. Use GH Actions or Modal.
-# 3. Write a training pipeline that (1) selects the features for use in a feature view, (2) reads training data with the Feature
-# View, trains a regression or classifier model to predict air quality (pm25). Register the model with Hopsworks.
-# 4. Write a batch inference pipeline that creates a dashboard. The program should download your model from Hopsworks
-# and plot a dashboard that predicts the air quality for the next 7-10 days for your chosen air quality sensor.
-# 5. Monitor the accuracy of your predictions by plotting a hindcast graph showing your predictions vs outcomes
-# (measured air quality).
-# Grade ‘C’ tasks
-# 6. Update your Model by adding a new feature, lagged air quality for the previous 1 day, 2 days, and 3 days. Measure and
-# explain the performance improvement or regression for these features.
-# Grade ‘A’ tasks
-# 7. Provide predictions for all air quality sensors in a Swedish city
 
 # %%
 import os
+import json
 
-# import hopsworks
+import feature_store
+import pandas as pd
+import requests
+import weather
 from dotenv import load_dotenv
 
 load_dotenv()
+# %%
+# Load places
+with open("places.json") as plf:
+    places = json.load(plf)
 
-import requests
-
-CITY_KEY = "@13986"
-AQICN_URL = (
-    f"https://api.waqi.info/feed/{CITY_KEY}/?token={os.environ['AQICN_ORG_API_TOKEN']}"
-)
-
-resp = requests.get(AQICN_URL)
-resp.json()
+places
 
 # %%
-resp.json()["data"]["city"]
+# Get today's air quality for all places
+aq_df = pd.DataFrame(columns=["id", "date", "pm25"])
+for place in places:
+    aqicn_url = (
+        f"https://api.waqi.info/feed/{place}/?token={os.environ['AQICN_ORG_API_TOKEN']}"
+    )
+    resp = requests.get(aqicn_url)
+    resp.raise_for_status()
+    data = resp.json()["data"]
 
-# project = hopsworks.login(engine="python")
+    new_row = pd.DataFrame(
+        [
+            {
+                "id": place,
+                "date": pd.to_datetime(data["time"]["iso"]).date(),
+                "pm25": float(data["iaqi"]["pm25"]["v"]),
+            }
+        ]
+    )
+    aq_df = pd.concat([aq_df, new_row], ignore_index=True)
+
+aq_df["pm25"] = aq_df["pm25"].astype("float32")
+
+aq_df.head(10)
+
+# %%
+weather_df = weather.get_forecast(10, places)
+weather_df.head(10)
+
+# %%
+# Retrieve feature groups
+air_quality_fg, weather_fg, _ = feature_store.get_feature_groups()
+air_quality_fg.insert(aq_df)
+weather_fg.insert(weather_df)
 
 # %%

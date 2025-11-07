@@ -1,5 +1,15 @@
 # Air Quality
 
+## Set up environment variables
+
+Run
+
+```shell
+cp .env.example .env
+```
+
+and use the comments to set up the environment variables.
+
 ## Installing Dependencies
 
 The project is managed by uv, but `hopsworks` must be installed separately in the venv. Use the following commands:
