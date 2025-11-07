@@ -143,12 +143,6 @@ for place_id in places:
 aq_df.head()
 
 # %%
-
-# aq_df.info()
-# pd.set_option("display.max_columns", 7)
-aq_df.count()
-
-# %%
 project = hopsworks.login(engine="python")
 fs = project.get_feature_store()
 fs
@@ -167,10 +161,6 @@ air_quality_fg.update_feature_description(
     "pm25",
     "Particles less than 2.5 micrometers in diameter (fine particles) pose health risk",
 )
-# air_quality_fg.update_feature_description("country", "Country where the air quality was measured (sometimes a city in acqcn.org)")
-# air_quality_fg.update_feature_description("city", "City where the air quality was measured")
-# air_quality_fg.update_feature_description("street", "Street in the city where the air quality was measured")
-
 
 # %%
 def get_historical_weather(aq_df: pd.DataFrame, places: dict[str, Place]) -> pd.DataFrame:
