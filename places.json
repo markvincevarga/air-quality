@@ -1,0 +1,66 @@
+{
+    "A65707": {
+        "street": "Lilla Åby",
+        "city": "Slaka",
+        "country": "Sweden",
+        "id": "A65707",
+        "latitude": 58.364,
+        "longitude": 15.55
+    },
+    "A58909": {
+        "street": "Tröskaregatan",
+        "city": "Slaka",
+        "country": "Sweden",
+        "id": "A58909",
+        "latitude": 58.386,
+        "longitude": 15.56
+    },
+    "A77446": {
+        "street": "Ånestad",
+        "city": "Johannelund",
+        "country": "Sweden",
+        "id": "A77446",
+        "latitude": 58.392,
+        "longitude": 15.656
+    },
+    "@13990": {
+        "street": "Hamngatan 10",
+        "city": "Linköping",
+        "country": "Sweden",
+        "id": "@13990",
+        "latitude": 58.412392308267435,
+        "longitude": 15.630079303463972
+    },
+    "A533086": {
+        "street": "Björnsbacken",
+        "city": "Berg",
+        "country": "Sweden",
+        "id": "A533086",
+        "latitude": 58.49270341067,
+        "longitude": 15.5322432518
+    },
+    "@13985": {
+        "street": "Kungsgatan 32",
+        "city": "Norrköping",
+        "country": "Sweden",
+        "id": "@13985",
+        "latitude": 58.59151641212257,
+        "longitude": 16.177874909141224
+    },
+    "@13986": {
+        "street": "Trädgårdsgatan 21",
+        "city": "Norrköping",
+        "country": "Sweden",
+        "id": "@13986",
+        "latitude": 58.59203940483364,
+        "longitude": 16.18933291215303
+    },
+    "A556792": {
+        "street": "Enebymovägen",
+        "city": "Norrköping",
+        "country": "Sweden",
+        "id": "A556792",
+        "latitude": 58.6,
+        "longitude": 16.154
+    }
+}

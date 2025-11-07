@@ -2,11 +2,11 @@
 import os
 import openmeteo_requests
 import pandas as pd
+import json
 import requests
 import requests_cache
 from pathlib import Path
 from retry_requests import retry
-from typing import TypedDict
 from dotenv import load_dotenv
 
 import hopsworks
@@ -15,81 +15,8 @@ load_dotenv()
 
 
 # %%
-class Place(TypedDict):
-    street: str
-    city: str
-    country: str
-    id: str
-    latitude: float | None
-    longitude: float | None
-
-
-places = {
-    "A65707": Place(
-        street="Lilla Åby",
-        city="Slaka",
-        country="Sweden",
-        id="A65707",
-        latitude=58.364,
-        longitude=15.55,
-    ),
-    "A58909": Place(
-        street="Tröskaregatan",
-        city="Slaka",
-        country="Sweden",
-        id="A58909",
-        latitude=58.386,
-        longitude=15.56,
-    ),
-    "A77446": Place(
-        street="Ånestad",
-        city="Johannelund",
-        country="Sweden",
-        id="A77446",
-        latitude=58.392,
-        longitude=15.656,
-    ),
-    "@13990": Place(
-        street="Hamngatan 10",
-        city="Linköping",
-        country="Sweden",
-        id="@13990",
-        latitude=58.412392308267435,
-        longitude=15.630079303463972,
-    ),
-    "A533086": Place(
-        street="Björnsbacken",
-        city="Berg",
-        country="Sweden",
-        id="A533086",
-        latitude=58.49270341067,
-        longitude=15.5322432518,
-    ),
-    "@13985": Place(
-        street="Kungsgatan 32",
-        city="Norrköping",
-        country="Sweden",
-        id="@13985",
-        latitude=58.59151641212257,
-        longitude=16.177874909141224,
-    ),
-    "@13986": Place(
-        street="Trädgårdsgatan 21",
-        city="Norrköping",
-        country="Sweden",
-        id="@13986",
-        latitude=58.59203940483364,
-        longitude=16.18933291215303,
-    ),
-    "A556792": Place(
-        street="Enebymovägen",
-        city="Norrköping",
-        country="Sweden",
-        id="A556792",
-        latitude=58.6,
-        longitude=16.154,
-    ),
-}
+with open("places.json") as plf:
+    places = json.load(plf)
 
 # Only run if geo data is missing
 if len(list(p["latitude"] for p in places.values())) != len(places):
@@ -107,7 +34,7 @@ places
 
 
 # %%
-def process_aq(df: pd.DataFrame, place: Place):
+def process_aq(df: pd.DataFrame, place: dict[str, dict]) -> None:
     """
     Process air quality dataframe depending on the type (A or @).
 
@@ -163,7 +90,7 @@ air_quality_fg.update_feature_description(
 )
 
 # %%
-def get_historical_weather(aq_df: pd.DataFrame, places: dict[str, Place]) -> pd.DataFrame:
+def get_historical_weather(aq_df: pd.DataFrame, places: dict[str, dict]) -> pd.DataFrame:
     """Get historical weather for all places in the places list
 
     The aq_df has the air quality readings for each place. Checks for each place
