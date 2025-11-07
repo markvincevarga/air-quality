@@ -6,7 +6,7 @@ import requests
 from pathlib import Path
 from dotenv import load_dotenv
 
-import hopsworks
+import hops
 import weather
 
 load_dotenv()
@@ -68,8 +68,8 @@ for place_id in places:
 aq_df.head()
 
 # %%
-project = hopsworks.login(engine="python", project="ostergotland_air_quality")
-fs = project.get_feature_store()
+project = hops.Project(name="ostergotland_air_quality")
+fs = project.feature_store
 fs
 
 # %%
