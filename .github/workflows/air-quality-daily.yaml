@@ -1,0 +1,38 @@
+name: air-quality-daily
+
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: '11 6 * * *'
+
+jobs:
+  schedule_pipelines:
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      contents: write
+
+    steps:
+      - name: checkout repo content
+        uses: actions/checkout@v4
+
+      - name: Set Up Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ca-certificates
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      - name: install python packages
+        run: |
+          # to avoid copy warnings
+          export UV_LINK_MODE=copy
+          uv sync
+          uv pip install "hopsworks[python]"
+
+      - name: fetch and send daily features to Hopsworks
+        env:
+          HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
+          AQICN_ORG_API_TOKEN: ${{ secrets.AQICN_ORG_API_TOKEN }}
+        run: uv run python feature-daily-pipeline.py
+          
