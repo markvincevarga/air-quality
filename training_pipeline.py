@@ -4,6 +4,7 @@
 # (2) reads training data with the FeatureView, trains a regression or classifier model to predict air quality (pm25). Register the model with Hopsworks.
 
 import os
+import sys
 import json
 import hops
 from datetime import datetime, timedelta
@@ -11,6 +12,13 @@ from plot import plot_air_quality_forecast
 from xgboost import XGBRegressor
 from xgboost import plot_importance
 from sklearn.metrics import mean_squared_error, r2_score
+
+from dotenv import load_dotenv
+
+load_dotenv()
+
+def is_interactive():
+    return hasattr(sys, 'ps1')
 
 # %%
 project = hops.Project(name="ostergotland_air_quality")
@@ -94,7 +102,8 @@ for place in places.values():
         img_dir + f"/pm25_forecast_{place['city']}_{place['street']}.png",
         hindcast=True,
     )
-    plt.show()
+    if is_interactive():
+        plt.show()
 
 
 # %%
@@ -122,4 +131,5 @@ aq_model.save(model_file)
 plot_importance(xgb_regressor)
 feature_importance_path = img_dir + "/feature_importance.png"
 plt.savefig(feature_importance_path)
-plt.show()
+if is_interactive():
+    plt.show()
