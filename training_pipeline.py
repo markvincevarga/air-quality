@@ -98,7 +98,6 @@ for place in places.values():
 
 
 # %%
-# TODO: This is just a copy/paste, have not tested with hops library yet
 #  Saving the XGBoost regressor object as a json file in the model directory
 model_file = model_dir + "/model.json"
 
