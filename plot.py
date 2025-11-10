@@ -7,11 +7,13 @@ from matplotlib.ticker import MultipleLocator
 def plot_air_quality_forecast(df: pd.DataFrame, place, file_path: str, hindcast=False):
     _fig, ax = plt.subplots(figsize=(10, 6))
 
-    day = pd.to_datetime(df["date"]).dt.date
+    place_df = df[df["id"] == place["id"]]
+
+    day = pd.to_datetime(place_df["date"]).dt.date
     # Plot each column separately in matplotlib
     ax.plot(
         day,
-        df["predicted_pm25"],
+        place_df["predicted_pm25"],
         label="Predicted PM2.5",
         color="red",
         linewidth=2,
@@ -58,8 +60,8 @@ def plot_air_quality_forecast(df: pd.DataFrame, place, file_path: str, hindcast=
     )
 
     # Aim for ~10 annotated values on x-axis, will work for both forecasts ans hindcasts
-    if len(df.index) > 11:
-        every_x_tick = len(df.index) / 10
+    if len(place_df.index) > 11:
+        every_x_tick = len(place_df.index) / 10
         ax.xaxis.set_major_locator(MultipleLocator(every_x_tick))
 
     plt.xticks(rotation=45)
@@ -67,7 +69,7 @@ def plot_air_quality_forecast(df: pd.DataFrame, place, file_path: str, hindcast=
     if hindcast:
         ax.plot(
             day,
-            df["pm25"],
+            place_df["pm25"],
             label="Actual PM2.5",
             color="black",
             linewidth=2,

@@ -6,7 +6,7 @@
 import os
 import json
 import hops
-from datetime import datetime
+from datetime import datetime, timedelta
 from plot import plot_air_quality_forecast
 from xgboost import XGBRegressor
 from xgboost import plot_importance
@@ -17,30 +17,49 @@ project = hops.Project(name="ostergotland_air_quality")
 air_quality_fg, weather_fg = project.get_feature_groups(
     [("air_quality", 2), ("weather", 2)]
 )
-selected_features = air_quality_fg.select(["pm25", "date"]).join(
-    weather_fg.select_features(), on=["id"]
+selected_features = air_quality_fg.select(["id", "pm25", "date"]).join(
+    weather_fg.select_all(), on="id", prefix="weather_"
 )
 
 feature_view = project.feature_store.get_or_create_feature_view(
     name="air_quality_fv",
     description="weather features with air quality as the target",
-    version=1,
+    version=4,
+    inference_helper_columns=["id"],
+    training_helper_columns=["id"],
     labels=["pm25"],
     query=selected_features,
 )
 
 # %%
+test_start = (datetime.today() - timedelta(days=7)).strftime("%Y-%m-%d")
 
-test_start = datetime.today().strftime("%Y-%m-%d")
-
-X_train, X_test, y_train, y_test = feature_view.train_test_split(test_start=test_start)
-X_features = X_train.drop(columns=["date"])
-X_test_features = X_test.drop(columns=["date"])
-X_train
-y_train
+X_train, X_test, y_train, y_test = feature_view.train_test_split(
+    test_start=test_start, primary_key=True
+)
+X_train.head()
 
 # %%
+X_features = X_train.drop(
+    columns=[
+        "date",
+        "weather_date",
+        "weather_id",
+        "ostergotland_air_quality_air_quality_2_id",
+    ]
+)
+X_test_features = X_test.drop(
+    columns=[
+        "date",
+        "weather_date",
+        "weather_id",
+        "ostergotland_air_quality_air_quality_2_id",
+    ]
+)
+X_features.head()
+y_train.head()
 
+# %%
 xgb_regressor = XGBRegressor()
 xgb_regressor.fit(X_features, y_train)
 y_pred = xgb_regressor.predict(X_test_features)
@@ -60,11 +79,14 @@ with open("places.json") as plf:
     places = json.load(plf)
 
 places
+
 # %%
 model_dir = "model"
 os.makedirs("model", exist_ok=True)
 img_dir = "model/images"
 os.makedirs(img_dir, exist_ok=True)
+
+df["id"] = X_test["weather_id"]
 for place in places.values():
     plt = plot_air_quality_forecast(
         df,
@@ -96,3 +118,5 @@ for place in places.values():
 
 # # Saving the model artifacts to the 'air_quality_model' directory in the model registry
 # aq_model.save(model_dir)
+
+# %%
