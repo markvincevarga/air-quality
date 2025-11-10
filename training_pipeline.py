@@ -98,25 +98,28 @@ for place in places.values():
 
 
 # %%
-# TODO: This is just a copy/paste, have not tested with hops library yet
 #  Saving the XGBoost regressor object as a json file in the model directory
-# xgb_regressor.save_model(model_dir + "/model.json")
-# res_dict = {
-#     "MSE": str(mse),
-#     "R squared": str(r2),
-# }
-# mr = project.get_model_registry()
+model_file = model_dir + "/model.json"
 
-# # Creating a Python model in the model registry named 'air_quality_xgboost_model'
-
-# aq_model = mr.python.create_model(
-#     name="air_quality_xgboost_model",
-#     metrics=res_dict,
-#     feature_view=feature_view,
-#     description="Air Quality (PM2.5) predictor",
-# )
-
-# # Saving the model artifacts to the 'air_quality_model' directory in the model registry
-# aq_model.save(model_dir)
+xgb_regressor.save_model(model_file)
+res_dict = {
+    "MSE": str(mse),
+    "R squared": str(r2),
+}
+mr = project.model_registry
+# Creating a Python model in the model registry named 'air_quality_xgboost_model'
+aq_model = mr.python.create_model(
+    name="air_quality_xgboost_model",
+    metrics=res_dict,
+    feature_view=feature_view,
+    description="Air Quality (PM2.5) predictor",
+)
+# Saving the model artifacts to the 'air_quality_model' directory in the model registry
+aq_model.save(model_file)
 
 # %%
+# Plotting feature importances using the plot_importance function from XGBoost
+plot_importance(xgb_regressor)
+feature_importance_path = img_dir + "/feature_importance.png"
+plt.savefig(feature_importance_path)
+plt.show()
