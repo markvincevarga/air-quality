@@ -16,6 +16,10 @@ class Project:
     @property
     def model_registry(self):
         return self.project.get_model_registry()
+    
+    @property
+    def feature_api(self):
+        return self.project.get_feature_api()
 
     def get_feature_groups(self, groups: list[group] | None = None) -> tuple:
         """Gets a sequence of feature groups by their names and versions.
