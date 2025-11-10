@@ -5,7 +5,7 @@
 import os
 import json
 
-import feature_store
+import hops
 import pandas as pd
 import requests
 import weather
@@ -51,7 +51,10 @@ weather_df.head(10)
 
 # %%
 # Retrieve feature groups
-air_quality_fg, weather_fg, _ = feature_store.get_feature_groups()
+project = hops.Project(name="ostergotland_air_quality")
+air_quality_fg, weather_fg = project.get_feature_groups(
+    [("air_quality", 2), ("weather", 2)]
+)
 air_quality_fg.insert(aq_df)
 weather_fg.insert(weather_df)
 
