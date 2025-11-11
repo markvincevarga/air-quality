@@ -4,6 +4,7 @@ import pandas as pd
 import json
 import requests
 from pathlib import Path
+import helper
 from dotenv import load_dotenv
 
 import hops
@@ -71,6 +72,16 @@ aq_df.head()
 project = hops.Project(name="ostergotland_air_quality")
 fs = project.feature_store
 fs
+# %%
+# Save air quality data with lagged values
+lagged_aq_df = aq_df
+lagged_aq_df["date"] = pd.to_datetime(lagged_aq_df["date"])
+lagged_aq_df = helper.add_lagged_data(aq_df, "pm25", by_days=1)
+lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=2)
+lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=3)
+lagged_aq_df.dropna(inplace=True)
+lagged_aq_df.drop(columns=["pm25"], inplace=True)
+lagged_aq_df.head(15)
 
 # %%
 air_quality_fg = fs.get_or_create_feature_group(
@@ -87,6 +98,15 @@ air_quality_fg.update_feature_description(
     "Particles less than 2.5 micrometers in diameter (fine particles) pose health risk",
 )
 
+# %%
+lagged_aq_fg = fs.get_or_create_feature_group(
+    name="air_quality_lagged",
+    description="Air Quality characteristics with lagged pm25 values",
+    version=1,
+    primary_key=["id"],
+    event_time="date",
+)
+lagged_aq_fg.insert(lagged_aq_df)
 # %%
 weather_df = weather.get_historical(aq_df, places)
 weather_df.head()

@@ -5,7 +5,6 @@ import pandas as pd
 from xgboost import XGBRegressor
 import json
 import os
-
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -29,7 +28,6 @@ fv = retrieved_model.get_feature_view()
 # Download the saved model artifacts to a local directory
 saved_model_dir = retrieved_model.download()
 # Loading the XGBoost regressor model and label encoder from the saved model directory
-# retrieved_xgboost_model = joblib.load(saved_model_dir + "/xgboost_regressor.pkl")
 retrieved_xgboost_model = XGBRegressor()
 retrieved_xgboost_model.load_model(saved_model_dir + "/model.json")
 # Displaying the retrieved XGBoost regressor model
