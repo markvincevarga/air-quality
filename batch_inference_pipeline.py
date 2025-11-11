@@ -1,10 +1,8 @@
 # %%
 import hops
 import datetime
-import pandas as pd
 from xgboost import XGBRegressor
 import json
-import os
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,10 +17,7 @@ places
 project = hops.Project(name="ostergotland_air_quality")
 mr = project.model_registry
 
-retrieved_model = mr.get_model(
-    name="air_quality_xgboost_model",
-    version=2,
-)
+retrieved_model = mr.get_model(name="air_quality_xgboost_model", version=7)
 
 fv = retrieved_model.get_feature_view()
 # Download the saved model artifacts to a local directory
@@ -34,24 +29,61 @@ retrieved_xgboost_model.load_model(saved_model_dir + "/model.json")
 retrieved_xgboost_model
 
 
-
 # %%
 today = datetime.date.today().strftime("%Y-%m-%d")
 
+# Get and clean feature view
+
 fs = project.feature_store
-weather_fg = project.get_feature_groups(
+weather_fg, lagged_air_quality_fg = project.get_feature_groups(
     [
         (
             "weather",
             2,
-        )
+        ),
+        (
+            "air_quality_lagged",
+            1,
+        ),
     ]
-)[0]
+)
+
+selected_features = weather_fg.select_all().join(
+    lagged_air_quality_fg.select_all(), on="id", prefix="lagged_aq_"
+)
+
+feature_view = project.feature_store.get_or_create_feature_view(
+    name="weather_plus_lagged_air_quality_inf_fv",
+    description="",
+    version=1,
+    inference_helper_columns=["id"],
+    training_helper_columns=["id"],
+    query=selected_features,
+)
 
 # %%
-batch_data = weather_fg.filter(weather_fg.date >= today).read()
-batch_data['predicted_pm25'] = retrieved_xgboost_model.predict( batch_data.drop(columns=["date", "id"]).add_prefix("weather_"))
-batch_data.head()
+# Get batch data for today
+tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+batch_data = feature_view.get_batch_data(start_time=today, end_time=tomorrow)
+batch_data.drop(columns=["lagged_aq_date"], inplace=True)
+batch_data.rename(columns={"lagged_aq_id": "id"}, inplace=True)
+
+batch_data.info()
+# %%
+retrieved_xgboost_model.feature_names_in_
+
+# %%
+# Run predictor
+batch_data["predicted_pm25"] = retrieved_xgboost_model.predict(
+    batch_data.drop(columns=["date", "id"]).rename(
+        columns={
+            col: "weather_" + col
+            for col in batch_data.columns
+            if not col.startswith("lagged_aq_")
+        },
+    )
+)
+batch_data.tail()
 
 # %%
 # Save forecasts to separate feature group

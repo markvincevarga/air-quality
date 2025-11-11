@@ -17,8 +17,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
 def is_interactive():
-    return hasattr(sys, 'ps1')
+    return hasattr(sys, "ps1")
+
 
 # %%
 project = hops.Project(name="ostergotland_air_quality")
@@ -59,10 +61,23 @@ columns_to_drop = [
     "ostergotland_air_quality_air_quality_2_id",
     "lagged_aq_id",
 ]
-X_features = X_train.drop(columns=columns_to_drop)
-X_test_features = X_test.drop(columns=columns_to_drop)
+X_features = X_train.drop(columns=columns_to_drop).rename(
+    columns={
+        col: col.replace("lagged_aq_", "")
+        for col in X_train.columns
+        if col.startswith("lagged_aq_")
+    },
+)
+X_test_features = X_test.drop(columns=columns_to_drop).rename(
+    columns={
+        col: col.replace("lagged_aq_", "")
+        for col in X_test.columns
+        if col.startswith("lagged_aq_")
+    },
+)
 print(y_train.head())
 X_features.head()
+X_features.info()
 
 # %%
 xgb_regressor = XGBRegressor()
