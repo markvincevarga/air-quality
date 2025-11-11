@@ -36,12 +36,6 @@ jobs:
           AQICN_ORG_API_TOKEN: ${{ secrets.AQICN_ORG_API_TOKEN }}
         run: uv run python feature-daily-pipeline.py
 
-      - name: train and upload model
-        env:
-          HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
-          AQICN_ORG_API_TOKEN: ${{ secrets.AQICN_ORG_API_TOKEN }}
-        run: uv run python training_pipeline.py
-
       - name: produce and upload daily forecasts
         env:
           HOPSWORKS_API_KEY: ${{ secrets.HOPSWORKS_API_KEY }}
