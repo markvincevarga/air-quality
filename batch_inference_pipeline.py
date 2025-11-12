@@ -43,7 +43,7 @@ weather_fg, lagged_air_quality_fg = project.get_feature_groups(
         ),
         (
             "air_quality_lagged",
-            1,
+            3,
         ),
     ]
 )
@@ -55,36 +55,62 @@ selected_features = weather_fg.select_all().join(
 feature_view = project.feature_store.get_or_create_feature_view(
     name="weather_plus_lagged_air_quality_inf_fv",
     description="",
-    version=1,
+    version=3,
     inference_helper_columns=["id"],
     training_helper_columns=["id"],
     query=selected_features,
 )
 
 # %%
-# Get batch data for today
+# lafg_df = lagged_air_quality_fg.read()
+# %%
+# lafg_df.sort_values(by=["date"], inplace=True)
+# lafg_df[lafg_df["id"] == "@13986"].tail(20)  
+# %%
+# Get batch weather and lagged air quality data for tomorrow onwards
 tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
-batch_data = feature_view.get_batch_data(start_time=today, end_time=tomorrow)
+batch_data = feature_view.get_batch_data(start_time=tomorrow)
 batch_data.drop(columns=["lagged_aq_date"], inplace=True)
 batch_data.rename(columns={"lagged_aq_id": "id"}, inplace=True)
-
+# Set lagged data from day after tomorrow to NaN
+# Since we don't actually have that data, the join just adds the latest available
+for lag_col in batch_data.columns:
+    if lag_col.startswith("lagged_aq_"):
+        batch_data.loc[batch_data["date"] > (datetime.date.today() + datetime.timedelta(days=1)), lag_col] = None
+batch_data["predicted_pm25"] = None
+batch_data["predicted_pm25"] = batch_data["predicted_pm25"].astype('float32')
 batch_data.info()
 # %%
-retrieved_xgboost_model.feature_names_in_
+batch_data.info()
 
 # %%
-# Run predictor
-batch_data["predicted_pm25"] = retrieved_xgboost_model.predict(
-    batch_data.drop(columns=["date", "id"]).rename(
-        columns={
-            col: "weather_" + col
-            for col in batch_data.columns
-            if not col.startswith("lagged_aq_")
-        },
+# TODO debug why 
+# - it is capable of predicting for every day
+# - but the lagged values remain NaN after the first day
+for day in batch_data["date"].unique():  
+    print("Processing day:", day)
+    forecasts_day = batch_data[batch_data["date"] == day]
+    predicted = retrieved_xgboost_model.predict(
+        forecasts_day.drop(columns=["date", "id", "predicted_pm25"]).rename(
+            columns={
+                col: "weather_" + col
+                for col in forecasts_day.columns
+                if not col.startswith("lagged_aq_")
+            },
+        )
     )
-)
-batch_data.tail()
-
+    predicted = predicted.astype(float)
+    batch_data.loc[batch_data["date"] == day,"predicted_pm25"] = predicted
+    # Take the weather forecast for tomorrow
+    next_day = day + datetime.timedelta(days=1)
+    mask_next = batch_data["date"] == next_day
+    # pm25 lagged_1d for tomorrow = predicted_pm25 for today
+    batch_data.loc[mask_next, "lagged_aq_pm25_lagged_1d"] = forecasts_day["predicted_pm25"]
+    batch_data.loc[mask_next, "lagged_aq_pm25_lagged_2d"] = forecasts_day["lagged_aq_pm25_lagged_1d"]
+    batch_data.loc[mask_next, "lagged_aq_pm25_lagged_3d"] = forecasts_day["lagged_aq_pm25_lagged_2d"]
+    
+    
+batch_data.head(20)
 # %%
 # Save forecasts to separate feature group
 batch_data = batch_data[["date", "id", "predicted_pm25"]]

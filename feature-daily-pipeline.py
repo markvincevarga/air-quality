@@ -55,16 +55,23 @@ weather_df.head(10)
 # Retrieve feature groups
 project = hops.Project(name="ostergotland_air_quality")
 air_quality_fg, weather_fg, lagged_aq_fg = project.get_feature_groups(
-    [("air_quality", 2), ("weather", 2), ("air_quality_lagged", 1)]
+    [("air_quality", 2), ("weather", 2), ("air_quality_lagged", 3)]
 )
 air_quality_fg.insert(aq_df)
 weather_fg.insert(weather_df)
 
 # %%
+lagged_test_df = lagged_aq_fg.read()
+# %%
+lagged_test_df.sort_values(by=["date"], inplace=True)
+print("Lagged air quality feature group sample data:")
+lagged_test_df[lagged_test_df["id"] == "@13986"].tail(10)
+
+# %%
 # Insert lagged air quality data
 lagged_timestamp = (date.today() - timedelta(days=3)).strftime("%Y-%m-%d")
-recent_aq_df = air_quality_fg.filter(air_quality_fg.date >= lagged_timestamp).read()
-recent_aq_df.head(10)
+recent_aq_df = air_quality_fg.filter(lagged_timestamp <= air_quality_fg.date < date.today().strftime("%Y-%m-%d")).read()
+recent_aq_df.tail(10)
 
 # %%
 # Add fake rows for tomorrow, since we already know the lagged data for tomorrow
@@ -78,10 +85,12 @@ lagged_aq_df.tail(15)
 lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=1)
 lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=2)
 lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=3)
-lagged_aq_df["date"] = pd.to_datetime(lagged_aq_df["date"])
 lagged_aq_df.drop(columns=["pm25"], inplace=True)
+lagged_aq_df["date"] = pd.to_datetime(lagged_aq_df["date"])
 # %%
 tomorrows_lagged_aq_df = lagged_aq_df[lagged_aq_df["date"] == lagged_aq_df["date"].max()]
 tomorrows_lagged_aq_df.tail(20)
+# %%
+lagged_aq_df[lagged_aq_df["id"] == "@13986"].tail(10)
 # %%
 lagged_aq_fg.insert(tomorrows_lagged_aq_df)

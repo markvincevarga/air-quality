@@ -25,7 +25,7 @@ def is_interactive():
 # %%
 project = hops.Project(name="ostergotland_air_quality")
 air_quality_fg, weather_fg, lagged_air_quality_fg = project.get_feature_groups(
-    [("air_quality", 2), ("weather", 2), ("air_quality_lagged", 1)]
+    [("air_quality", 2), ("weather", 2), ("air_quality_lagged", 3)]
 )
 selected_features = (
     air_quality_fg.select(["id", "pm25", "date"])
@@ -36,7 +36,7 @@ selected_features = (
 feature_view = project.feature_store.get_or_create_feature_view(
     name="air_quality_fv",
     description="weather features with air quality as the target",
-    version=5,
+    version=6,
     inference_helper_columns=["id"],
     training_helper_columns=["id"],
     labels=["pm25"],

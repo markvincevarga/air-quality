@@ -72,22 +72,21 @@ aq_df.head()
 # %%
 # Save air quality data with lagged values
 lagged_aq_df = aq_df
-lagged_aq_df["date"] = pd.to_datetime(lagged_aq_df["date"])
+lagged_aq_df["date"] = pd.to_datetime(lagged_aq_df["date"]).dt.date
 today = lagged_aq_df["date"].max()
 # Add fake rows for tomorrow, since we already know the lagged data for tomorrow
 fake_aq_tomorrow = lagged_aq_df[lagged_aq_df["date"] == today].copy()
 fake_aq_tomorrow["date"] = fake_aq_tomorrow["date"] + datetime.timedelta(days=1)
+# fake_aq_tomorrow["date"] = pd.to_datetime(fake_aq_tomorrow["date"])
 fake_aq_tomorrow["pm25"] = None
 lagged_aq_df = pd.concat([lagged_aq_df, fake_aq_tomorrow])
-
 # Add lagged data
 lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=1)
 lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=2)
 lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=3)
-lagged_aq_df.dropna(inplace=True)
 lagged_aq_df.drop(columns=["pm25"], inplace=True)
+lagged_aq_df.dropna(inplace=True)
 lagged_aq_df.tail(15)
-
 # %%
 project = hops.Project(name="ostergotland_air_quality")
 fs = project.feature_store
@@ -111,7 +110,7 @@ air_quality_fg.update_feature_description(
 lagged_aq_fg = fs.get_or_create_feature_group(
     name="air_quality_lagged",
     description="Air Quality characteristics with lagged pm25 values",
-    version=1,
+    version=3,
     primary_key=["id"],
     event_time="date",
 )
