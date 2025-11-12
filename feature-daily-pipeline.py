@@ -67,14 +67,21 @@ recent_aq_df = air_quality_fg.filter(air_quality_fg.date >= lagged_timestamp).re
 recent_aq_df.head(10)
 
 # %%
-lagged_aq_df = pd.concat([recent_aq_df, aq_df], ignore_index=True)
+# Add fake rows for tomorrow, since we already know the lagged data for tomorrow
+fake_aq_tomorrow = aq_df.copy()
+fake_aq_tomorrow["date"] = aq_df["date"] + timedelta(days=1)
+fake_aq_tomorrow["pm25"] = None
+lagged_aq_df = pd.concat([recent_aq_df, aq_df, fake_aq_tomorrow], ignore_index=True)
+lagged_aq_df.tail(15)
+# %%
+# Add lagged data
 lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=1)
 lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=2)
 lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=3)
-lagged_aq_df = lagged_aq_df[lagged_aq_df.date == date.today()]
 lagged_aq_df["date"] = pd.to_datetime(lagged_aq_df["date"])
 lagged_aq_df.drop(columns=["pm25"], inplace=True)
-lagged_aq_df.tail()
 # %%
-lagged_aq_fg.insert(lagged_aq_df)
-
+tomorrows_lagged_aq_df = lagged_aq_df[lagged_aq_df["date"] == lagged_aq_df["date"].max()]
+tomorrows_lagged_aq_df.tail(20)
+# %%
+lagged_aq_fg.insert(tomorrows_lagged_aq_df)
