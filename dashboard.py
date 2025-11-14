@@ -21,9 +21,15 @@ def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     last_14_days_filter = air_quality_fg.date >= (
         datetime.date.today() - datetime.timedelta(days=14)
     ).strftime("%Y-%m-%d")
-
+    next_14_days_filter = forecast_fg.date <= (
+        datetime.date.today() + datetime.timedelta(days=14)
+    ).strftime("%Y-%m-%d")
     aq_df = air_quality_fg.filter(last_14_days_filter).read().sort_values(by="date")
-    forecast_df = forecast_fg.read().sort_values(by="date")
+    forecast_df = (
+        forecast_fg.filter(last_14_days_filter and next_14_days_filter)
+        .read()
+        .sort_values(by="date")
+    )
     return (
         aq_df,
         forecast_df,
@@ -81,7 +87,7 @@ def create_plot(
         hovermode="x unified",
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 with open("places.json") as f:
