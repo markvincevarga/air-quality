@@ -95,6 +95,17 @@ with open("places.json") as f:
 
 
 st.title("Östergotland Air Quality Dashboard")
+st.html(
+    "A project by <strong>Númi Steinn Baldursson</strong> and <strong>Márk Vince Varga</strong> for the course <em>ID2223 Scalable Machine Learning and Deep Learning</em> at <strong>KTH</strong>, "
+    "Fall of 2025."
+)
+st.text(
+    """
+    This dashboard shows the historical and forecasted air quality (PM2.5 levels) for various locations in Östergotland, Sweden.
+    The historical data is shown for the last 14 days, along with previous forecasts.
+    Forecast for the next for the next 9 days is shown as well.
+    """
+)
 data_load_state = st.text("Loading data...")
 historical_data, forecast_data = load_data()
 forecast_data = add_forecast_diff(forecast_data)
