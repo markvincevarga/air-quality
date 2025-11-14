@@ -60,12 +60,6 @@ feature_view = project.feature_store.get_or_create_feature_view(
     training_helper_columns=["id"],
     query=selected_features,
 )
-
-# %%
-# lafg_df = lagged_air_quality_fg.read()
-# %%
-# lafg_df.sort_values(by=["date"], inplace=True)
-# lafg_df[lafg_df["id"] == "@13986"].tail(20)  
 # %%
 # Get batch weather and lagged air quality data for tomorrow onwards
 tomorrow = (datetime.date.today() + datetime.timedelta(days=1)).strftime("%Y-%m-%d")
@@ -81,36 +75,29 @@ batch_data["predicted_pm25"] = None
 batch_data["predicted_pm25"] = batch_data["predicted_pm25"].astype('float32')
 batch_data.info()
 # %%
-batch_data.info()
-
-# %%
-# TODO debug why 
-# - it is capable of predicting for every day
-# - but the lagged values remain NaN after the first day
 for day in batch_data["date"].unique():  
     print("Processing day:", day)
-    forecasts_day = batch_data[batch_data["date"] == day]
+    mask_day = batch_data["date"] == day
     predicted = retrieved_xgboost_model.predict(
-        forecasts_day.drop(columns=["date", "id", "predicted_pm25"]).rename(
+        batch_data[mask_day].drop(columns=["date", "id", "predicted_pm25"]).rename(
             columns={
                 col: "weather_" + col
-                for col in forecasts_day.columns
+                for col in batch_data[mask_day].columns
                 if not col.startswith("lagged_aq_")
             },
         )
     )
     predicted = predicted.astype(float)
-    batch_data.loc[batch_data["date"] == day,"predicted_pm25"] = predicted
+    batch_data.loc[mask_day,"predicted_pm25"] = predicted
     # Take the weather forecast for tomorrow
+    if day == batch_data["date"].max():
+        continue
     next_day = day + datetime.timedelta(days=1)
     mask_next = batch_data["date"] == next_day
     # pm25 lagged_1d for tomorrow = predicted_pm25 for today
-    batch_data.loc[mask_next, "lagged_aq_pm25_lagged_1d"] = forecasts_day["predicted_pm25"]
-    batch_data.loc[mask_next, "lagged_aq_pm25_lagged_2d"] = forecasts_day["lagged_aq_pm25_lagged_1d"]
-    batch_data.loc[mask_next, "lagged_aq_pm25_lagged_3d"] = forecasts_day["lagged_aq_pm25_lagged_2d"]
-    
-    
-batch_data.head(20)
+    batch_data.loc[mask_next, "lagged_aq_pm25_lagged_1d"] = batch_data.loc[mask_day, "predicted_pm25"].values
+    batch_data.loc[mask_next, "lagged_aq_pm25_lagged_2d"] = batch_data.loc[mask_day, "lagged_aq_pm25_lagged_1d"].values
+    batch_data.loc[mask_next, "lagged_aq_pm25_lagged_3d"] = batch_data.loc[mask_day, "lagged_aq_pm25_lagged_2d"].values
 # %%
 # Save forecasts to separate feature group
 batch_data = batch_data[["date", "id", "predicted_pm25"]]
