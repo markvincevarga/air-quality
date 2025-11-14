@@ -12,11 +12,10 @@ and use the comments to set up the environment variables.
 
 ## Installing Dependencies
 
-The project is managed by uv, but `hopsworks` must be installed separately in the venv. Use the following commands:
+The project is managed by uv. Use the following command to install dependencies locally:
 
 ```sh
 uv sync
-uv pip install "hopsworks[python]"
 ```
 
 ## Getting the backfill data
