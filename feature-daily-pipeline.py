@@ -7,6 +7,8 @@ import json
 
 import hops
 import pandas as pd
+from datetime import date, timedelta
+import helper
 import requests
 import weather
 from dotenv import load_dotenv
@@ -52,10 +54,43 @@ weather_df.head(10)
 # %%
 # Retrieve feature groups
 project = hops.Project(name="ostergotland_air_quality")
-air_quality_fg, weather_fg = project.get_feature_groups(
-    [("air_quality", 2), ("weather", 2)]
+air_quality_fg, weather_fg, lagged_aq_fg = project.get_feature_groups(
+    [("air_quality", 2), ("weather", 2), ("air_quality_lagged", 3)]
 )
 air_quality_fg.insert(aq_df)
 weather_fg.insert(weather_df)
 
 # %%
+lagged_test_df = lagged_aq_fg.read()
+# %%
+lagged_test_df.sort_values(by=["date"], inplace=True)
+print("Lagged air quality feature group sample data:")
+lagged_test_df[lagged_test_df["id"] == "@13986"].tail(10)
+
+# %%
+# Insert lagged air quality data
+lagged_timestamp = (date.today() - timedelta(days=3)).strftime("%Y-%m-%d")
+recent_aq_df = air_quality_fg.filter(lagged_timestamp <= air_quality_fg.date < date.today().strftime("%Y-%m-%d")).read()
+recent_aq_df.tail(10)
+
+# %%
+# Add fake rows for tomorrow, since we already know the lagged data for tomorrow
+fake_aq_tomorrow = aq_df.copy()
+fake_aq_tomorrow["date"] = aq_df["date"] + timedelta(days=1)
+fake_aq_tomorrow["pm25"] = None
+lagged_aq_df = pd.concat([recent_aq_df, aq_df, fake_aq_tomorrow], ignore_index=True)
+lagged_aq_df.tail(15)
+# %%
+# Add lagged data
+lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=1)
+lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=2)
+lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=3)
+lagged_aq_df.drop(columns=["pm25"], inplace=True)
+lagged_aq_df["date"] = pd.to_datetime(lagged_aq_df["date"])
+# %%
+tomorrows_lagged_aq_df = lagged_aq_df[lagged_aq_df["date"] == lagged_aq_df["date"].max()]
+tomorrows_lagged_aq_df.tail(20)
+# %%
+lagged_aq_df[lagged_aq_df["id"] == "@13986"].tail(10)
+# %%
+lagged_aq_fg.insert(tomorrows_lagged_aq_df)
