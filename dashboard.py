@@ -41,6 +41,7 @@ def add_forecast_diff(df_forecast: pd.DataFrame) -> pd.DataFrame:
 
 
 def create_plot(
+    place: dict,
     df_air_quality: pd.DataFrame,
     df_forecast: pd.DataFrame,
     forecast_days: tuple[int] = None,
@@ -74,7 +75,7 @@ def create_plot(
         )
 
     fig.update_layout(
-        title="Air Quality: Historical and Forecast",
+        title=f"Air Quality in {place['city']} on ({place['street']})",
         xaxis_title="Date",
         yaxis_title="PM2.5 Level",
         hovermode="x unified",
@@ -87,18 +88,14 @@ with open("places.json") as f:
     places = json.load(f)
 
 
-st.title("Ostergotland Air Quality Dashboard")
-selected_place = "A77446"
+st.title("Östergotland Air Quality Dashboard")
 data_load_state = st.text("Loading data...")
 historical_data, forecast_data = load_data()
 forecast_data = add_forecast_diff(forecast_data)
 data_load_state.text("")
 
-hist_for_place, forecast_for_place = (
-    historical_data[historical_data["id"] == selected_place],
-    forecast_data[forecast_data["id"] == selected_place],
-)
-create_plot(hist_for_place, forecast_for_place)
-st.write(
-    f"Displaying air quality data for place ID: {selected_place} ({places[selected_place]['city']}, {places[selected_place]['street']})"
-)
+for place in places.values():
+    selected_place = place["id"]
+    hist_for_place = historical_data[historical_data["id"] == selected_place]
+    forecast_for_place = forecast_data[forecast_data["id"] == selected_place]
+    create_plot(place, hist_for_place, forecast_for_place)
