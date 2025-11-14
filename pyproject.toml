@@ -5,16 +5,15 @@ description = "Pipeline to analyze and predict air quality data"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "hopsworks[python,polars]>=4.1.2",
+    "ipykernel>=6.29.5",
+    "streamlit==1.28.2",
+    "openmeteo-requests",
+    "requests-cache==1.2.0",
+    "retry-requests==2.0.0",
+    "xgboost==2.0.3",
+    "scikit-learn==1.2.2",
+    "plotly",
+    "matplotlib==3.8.3",
     "dotenv>=0.9.9",
-    "ipykernel>=7.1.0",
-    "matplotlib>=3.10.7",
-    "openmeteo-requests>=1.7.4",
-    "pandas>=2.3.3",
-    "plotly>=6.4.0",
-    "requests>=2.32.5",
-    "requests-cache>=1.2.1",
-    "retry-requests>=2.0.0",
-    "scikit-learn>=1.7.2",
-    "streamlit>=1.51.0",
-    "xgboost>=3.1.1",
 ]
