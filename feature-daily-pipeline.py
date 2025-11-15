@@ -70,7 +70,9 @@ lagged_test_df[lagged_test_df["id"] == "@13986"].tail(10)
 # %%
 # Insert lagged air quality data
 lagged_timestamp = (date.today() - timedelta(days=3)).strftime("%Y-%m-%d")
-recent_aq_df = air_quality_fg.filter(lagged_timestamp <= air_quality_fg.date < date.today().strftime("%Y-%m-%d")).read()
+recent_aq_df = air_quality_fg.filter(
+    lagged_timestamp <= air_quality_fg.date < date.today().strftime("%Y-%m-%d")
+).read()
 recent_aq_df.tail(10)
 
 # %%
@@ -86,11 +88,15 @@ lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=1)
 lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=2)
 lagged_aq_df = helper.add_lagged_data(lagged_aq_df, "pm25", by_days=3)
 lagged_aq_df.drop(columns=["pm25"], inplace=True)
-lagged_aq_df["date"] = pd.to_datetime(lagged_aq_df["date"])
+lagged_aq_df["date"] = pd.to_datetime(lagged_aq_df["date"]).dt.date
 # %%
-tomorrows_lagged_aq_df = lagged_aq_df[lagged_aq_df["date"] == lagged_aq_df["date"].max()]
+tomorrows_lagged_aq_df = lagged_aq_df[
+    lagged_aq_df["date"] == lagged_aq_df["date"].max()
+]
 tomorrows_lagged_aq_df.tail(20)
 # %%
 lagged_aq_df[lagged_aq_df["id"] == "@13986"].tail(10)
 # %%
 lagged_aq_fg.insert(tomorrows_lagged_aq_df)
+
+# %%
